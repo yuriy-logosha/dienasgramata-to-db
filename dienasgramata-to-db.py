@@ -2,6 +2,7 @@
 import logging
 import urllib.parse
 import time
+import datetime
 
 import pymongo
 
@@ -130,7 +131,7 @@ db_records = []
 
 
 def is_exists_hometask(_date, _day, _subj):
-    if len(list(dienasgramata.find({"kind": "exercise", "date": f"{_date}", "day": f"{_day}", "subject": f"{_subj}"}))) > 0:
+    if len(list(dienasgramata.find({"kind": "exercise", "date": _date , "day": f"{_day}", "subject": f"{_subj}"}))) > 0:
         return True
     return False
 
@@ -162,7 +163,9 @@ while True:
 
                 if is_date(d):
                     _d = extract(d[2])
-                    _date = _d.split('. ')[0]
+                    _date_left = _d.split('. ')[0].split('.')
+
+                    _date = datetime.datetime(int(_date_left[2])+2000, int(_date_left[1]), int(_date_left[0]))
                     _day = _d.split('. ')[1]
                     _subj = ""
                     _hometask = ""
