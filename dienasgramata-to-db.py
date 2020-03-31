@@ -60,13 +60,13 @@ subj = []
 
 
 def is_title(d):
-    if d[0] == 'span' and d[1] == [('class', 'title')]:
+    if d[0] == 'span' and d[1] == [('class', 'title')] and len(d) > 2 and extract(d[2]):
         return True
     return False
 
 
 def is_date(d):
-    if d[0] == 'h2' and d[1] == []:
+    if d[0] == 'h2' and d[1] == [] and len(d) > 2 and extract(d[2]):
         return True
     return False
 
@@ -109,11 +109,13 @@ def process_home_task(s, buffer):
     if s[0] == 'a' and not s[1][0][1].startswith('http'):
         if buffer:
             buffer += ';'
-        buffer += 'http://darit.space/dienasgramata/' + urllib.parse.quote(s[2].replace('\r', '').replace('\n', '').strip())
+        buffer += 'http://darit.space/dienasgramata/' + urllib.parse.quote(s[1][0][1].replace('\r', '').replace('\n', '').strip())
     else:
-        if buffer:
-            buffer += ';'
-        buffer += s[2].replace('\r', '').replace('\n', '').strip()
+        txt = s[2].replace('\r', '').replace('\n', '').strip()
+        if txt:
+            if buffer:
+                buffer += ';'
+            buffer += txt
     return buffer
 
 # encode('utf-8').decode().
@@ -144,18 +146,17 @@ while True:
             dienasgramata = myclient.school.dienasgramata
 
             data = request_site()
-            i = 0
-            while i <= len(data) - 1:
+            i = -1
+            while i < len(data) - 1:
+                i += 1
                 d = data[i]
                 # print(d)
 
                 if is_right_section(d):
                     _right_section = True
-                    i += 1
                     continue
 
                 if not _right_section:
-                    i += 1
                     continue
 
                 if is_not_right_section(d):
@@ -170,19 +171,31 @@ while True:
                     _subj = ""
                     _hometask = ""
                     _after_hometask = False
-                elif is_title(d):
-                    _subj = extract(d[2])
-                elif is_hometask(d):
-                    _after_hometask = True
-                elif is_after_hometask(d, _after_hometask):
-                    _hometask = process_home_task(d, _hometask)
-                elif is_score(d) and _hometask:
-                    _after_hometask = False
-                    if not is_exists_hometask(_date, _day, _subj):
-                        db_records.append(build_db_record(_date, _day, _subj, _hometask))
-                    _hometask = ""
+                    continue
 
-                i += 1
+                if is_title(d):
+                    _subj = extract(d[2])
+                    _hometask = ""
+                    _after_hometask = False
+                    continue
+
+                if is_hometask(d):
+                    _after_hometask = True
+                    continue
+
+                # if is_after_hometask(d, _after_hometask):
+                #     _hometask = process_home_task(d, _hometask)
+                #     continue
+
+                if _after_hometask:
+                    if is_score(d) and _hometask:
+                        _after_hometask = False
+                        if not is_exists_hometask(_date, _day, _subj):
+                            db_records.append(build_db_record(_date, _day, _subj, _hometask))
+                        _hometask = ""
+                    else:
+                        _hometask = process_home_task(d, _hometask)
+
 
             for i in db_records:
                 print(i)

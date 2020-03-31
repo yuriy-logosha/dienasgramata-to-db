@@ -74,7 +74,7 @@ class MyHTMLParser(HTMLParser):
         # print("Parsing of tags:", self.valid_tags)
 
     def handle_starttag(self, tag, attrs):
-        if tag == 'br':
+        if tag in ['br', 'meta', 'head']:
             return
         self.path.append(tag)
         self.is_current_tag_valid = self.valid(tag)
@@ -87,7 +87,7 @@ class MyHTMLParser(HTMLParser):
         super(self.__class__, self).handle_starttag(tag, attrs)
 
     def handle_endtag(self, tag):
-        if tag == 'br':
+        if tag in ['br', 'meta', 'head']:
             return
         try:
             i = len(self.path) - 1 - self.path[::-1].index(tag)
@@ -102,7 +102,16 @@ class MyHTMLParser(HTMLParser):
 
     def handle_data(self, data):
         if not self.current_tag or not self.is_current_tag_valid:
-            return
+            self.current_tag = None if not self.path else self.path[len(self.path)-1]
+            if not self.current_tag:
+                return
+            self.is_current_tag_valid = self.valid(self.current_tag)
+            if not self.is_current_tag_valid:
+                return
+            if len(self.data) > 2:
+                parent = self.data[len(self.data) - 2]
+                self.data.append(('', []))
+
         if not self.parsers:
             self.default_parser(data)
         else:
@@ -115,11 +124,11 @@ class MyHTMLParser(HTMLParser):
     def default_parser(self, data):
         if self.data:
             idx = len(self.data) - 1
-            last = self.data[idx]
-            if len(last) > 2:
+            target = self.data[idx]
+            if len(target) > 2:
                 self.data[idx] += (data,)
             else:
-                self.data[idx] = (last[0], last[1], data)
+                self.data[idx] = (target[0], target[1], data)
 
     def valid(self, tag):
         if len(self.valid_tags) > 0:
