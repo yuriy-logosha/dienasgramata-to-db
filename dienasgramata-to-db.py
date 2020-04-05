@@ -107,15 +107,21 @@ def extract(s):
 
 def process_home_task(s, buffer):
     if s[0] == 'a' and not s[1][0][1].startswith('http'):
-        if buffer:
-            buffer += ';'
-        buffer += 'http://darit.space/dienasgramata/' + urllib.parse.quote(s[1][0][1].replace('\r', '').replace('\n', '').strip())
-    else:
-        txt = s[2].replace('\r', '').replace('\n', '').strip()
-        if txt:
+        try:
             if buffer:
                 buffer += ';'
-            buffer += txt
+            buffer += 'http://darit.space/dienasgramata/' + urllib.parse.quote(s[1][0][1].replace('\r', '').replace('\n', '').strip())
+        except RuntimeError as e:
+            logger.error(e)
+    else:
+        try:
+            txt = s[2].replace('\r', '').replace('\n', '').strip()
+            if txt:
+                if buffer:
+                    buffer += ';'
+                buffer += txt
+        except RuntimeError as e:
+            logger.error(e)
     return buffer
 
 # encode('utf-8').decode().
