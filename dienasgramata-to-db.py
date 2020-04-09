@@ -56,15 +56,6 @@ def build_db_record(_date, _day, _subj, _tema, _hometask):
     return {}
 
 
-def build_update_db_record(_date, _day, _subj, _tema, _hometask):
-    try:
-        a = {"kind": "update_exercise", "date": _date, "day": _day, "subject": _subj, "tema": _tema, "exercise": _hometask}
-        return a
-    except RuntimeError as e:
-        logger.debug(e)
-    return {}
-
-
 def is_title(d):
     if d[0] == 'span' and d[1] == [('class', 'title')] and len(d) > 2 and extract(d[2]):
         return True
@@ -158,17 +149,11 @@ def get_record(_date, _day, _subj):
     return None
 
 
-def is_need_update(_record, _date, _day, _subj, _tema, _hometask):
-    if ('exercise' in _record and _record['exercise'] != _hometask) or ('tema' in _record and _record['tema'] != _tema):
-        return True
-    return False
-
-
-
 def prepare_date(_d):
     _date_left = _d.split('. ')[0].split('.')
     _date_right = _d.split('. ')[1]
     return datetime.datetime(int(_date_left[2])+2000, int(_date_left[1]), int(_date_left[0])), _date_right
+
 
 while True:
     try:
@@ -222,11 +207,9 @@ while True:
                     if is_score(d) and (_hometask or _tema):
                         _hometask_goingon = False
                         r = get_record(_date, _day, _subj)
-                        if r:
-                            if is_need_update(r, _date, _day, _subj, _tema, _hometask):
-                                db_records.append(build_update_db_record(_date, _day, _subj, _tema, _hometask))
-                        else:
+                        if not r:
                             db_records.append(build_db_record(_date, _day, _subj, _tema, _hometask))
+
                         _hometask = ""
                     else:
                         _hometask = process_home_task(d, _hometask)
