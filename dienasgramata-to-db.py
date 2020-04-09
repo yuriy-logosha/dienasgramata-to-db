@@ -47,16 +47,22 @@ def request_site():
     return d
 
 
-def build_db_record(_date, _day, _subj, _hometask):
+def build_db_record(_date, _day, _subj, _tema, _hometask):
     try:
-        a = {"kind": "exercise", "date": _date, "day": _day, "subject": _subj, "exercise": _hometask}
+        a = {"kind": "exercise", "date": _date, "day": _day, "subject": _subj, "tema": _tema, "exercise": _hometask}
         return a
     except RuntimeError as e:
         logger.debug(e)
     return {}
 
 
-subj = []
+def build_update_db_record(_date, _day, _subj, _tema, _hometask):
+    try:
+        a = {"kind": "update_exercise", "date": _date, "day": _day, "subject": _subj, "tema": _tema, "exercise": _hometask}
+        return a
+    except RuntimeError as e:
+        logger.debug(e)
+    return {}
 
 
 def is_title(d):
@@ -67,6 +73,12 @@ def is_title(d):
 
 def is_date(d):
     if d[0] == 'h2' and d[1] == [] and len(d) > 2 and extract(d[2]):
+        return True
+    return False
+
+
+def is_tema(d):
+    if d[0] == 'td' and d[1] == [('class', 'subject')]:
         return True
     return False
 
@@ -130,19 +142,33 @@ def process_home_task(s, buffer):
 _date = ""
 _day = ""
 _subj = ""
-_after_hometask = False
+_hometask_goingon = False
 _hometask = ""
-
+_tema = ""
+_tema_goingon = False
 _right_section = False
 
 db_records = []
 
 
-def is_exists_hometask(_date, _day, _subj):
-    if len(list(dienasgramata.find({"kind": "exercise", "date": _date , "day": f"{_day}", "subject": f"{_subj}"}))) > 0:
+def get_record(_date, _day, _subj):
+    _records = list(dienasgramata.find({"kind": "exercise", "date": _date , "day": f"{_day}", "subject": f"{_subj}"}))
+    if len(_records) > 0:
+        return _records[0]
+    return None
+
+
+def is_need_update(_record, _date, _day, _subj, _tema, _hometask):
+    if ('exercise' in _record and _record['exercise'] != _hometask) or ('tema' in _record and _record['tema'] != _tema):
         return True
     return False
 
+
+
+def prepare_date(_d):
+    _date_left = _d.split('. ')[0].split('.')
+    _date_right = _d.split('. ')[1]
+    return datetime.datetime(int(_date_left[2])+2000, int(_date_left[1]), int(_date_left[0])), _date_right
 
 while True:
     try:
@@ -169,35 +195,38 @@ while True:
                     break
 
                 if is_date(d):
-                    _d = extract(d[2])
-                    _date_left = _d.split('. ')[0].split('.')
-
-                    _date = datetime.datetime(int(_date_left[2])+2000, int(_date_left[1]), int(_date_left[0]))
-                    _day = _d.split('. ')[1]
+                    _date, _day = prepare_date(extract(d[2]))
                     _subj = ""
                     _hometask = ""
-                    _after_hometask = False
+                    _tema = ""
+                    _hometask_goingon = False
                     continue
 
                 if is_title(d):
                     _subj = extract(d[2])
                     _hometask = ""
-                    _after_hometask = False
+                    _hometask_goingon = False
                     continue
+
+                if is_tema(d):
+                    _tema_goingon = True
+                    _tema = ""
 
                 if is_hometask(d):
-                    _after_hometask = True
-                    continue
+                    _tema = _hometask
+                    _hometask = ""
+                    _tema_goingon = False
+                    _hometask_goingon = True
 
-                # if is_after_hometask(d, _after_hometask):
-                #     _hometask = process_home_task(d, _hometask)
-                #     continue
-
-                if _after_hometask:
-                    if is_score(d) and _hometask:
-                        _after_hometask = False
-                        if not is_exists_hometask(_date, _day, _subj):
-                            db_records.append(build_db_record(_date, _day, _subj, _hometask))
+                if _subj and (_hometask_goingon or _tema_goingon):
+                    if is_score(d) and (_hometask or _tema):
+                        _hometask_goingon = False
+                        r = get_record(_date, _day, _subj)
+                        if r:
+                            if is_need_update(r, _date, _day, _subj, _tema, _hometask):
+                                db_records.append(build_update_db_record(_date, _day, _subj, _tema, _hometask))
+                        else:
+                            db_records.append(build_db_record(_date, _day, _subj, _tema, _hometask))
                         _hometask = ""
                     else:
                         _hometask = process_home_task(d, _hometask)
