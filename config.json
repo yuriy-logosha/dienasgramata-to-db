@@ -1,6 +1,7 @@
 {
   "sites": [
-    "http://darit.space/dienasgramata/dienasgramata.html"
+    "http://darit.space/dienasgramata/dienasgramata.html",
+    "http://darit.space/dienasgramata-next/dienasgramata.html"
   ],
   "logging.name": "dienasgramata-to-db",
   "logging.format": "%(asctime)-15s %(levelname)s %(message)s",

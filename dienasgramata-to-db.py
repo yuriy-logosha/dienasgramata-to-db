@@ -177,7 +177,8 @@ while True:
                     continue
 
                 if is_not_right_section(d):
-                    break
+                    _right_section = False
+                    continue
 
                 if is_date(d):
                     _date, _day = prepare_date(extract(d[2]))
