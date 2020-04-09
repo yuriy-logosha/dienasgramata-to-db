@@ -8,6 +8,5 @@
   "logging.file": "dienasgramata-to-db.log",
   "logging.level": 10,
   "db.url": "mongodb://192.168.1.61:27017/",
-  "export.file.path": "dienasgramata.json",
-  "restart": 900
+  "restart": 60
 }

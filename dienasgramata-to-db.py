@@ -220,7 +220,6 @@ while True:
                 print(i)
             if db_records:
                 dienasgramata.insert_many(db_records)
-            # json_to_file(config['export.file.path'], db_records)
 
 
     except RuntimeError as e:
