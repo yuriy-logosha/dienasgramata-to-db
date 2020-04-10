@@ -3,8 +3,10 @@ import logging
 import urllib.parse
 import time
 import datetime
-
+import json
+from kafka import KafkaProducer
 import pymongo
+from bson import ObjectId
 
 from utils import json_from_file, MyHTMLParser, _get, json_to_file
 
@@ -16,6 +18,14 @@ try:
 except RuntimeError as e:
     print(e)
     exit()
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        if isinstance(o, datetime):
+            return o.strftime("%d.%m.%Y")
+        return json.JSONEncoder.default(self, o)
 
 formatter = logging.Formatter(config['logging.format'])
 # Create handlers
@@ -34,6 +44,8 @@ print("Selecting logging file \"%s\"" % config['logging.file'])
 logging.basicConfig(format=config["logging.format"], handlers=[c_handler, f_handler])
 logger = logging.getLogger(config["logging.name"])
 logger.setLevel(logging_level)
+
+producer = KafkaProducer(bootstrap_servers=[config['kafka.host']], value_serializer = lambda x: json.dumps(x, cls = JSONEncoder).encode('utf-8'))
 
 
 def request_site():
@@ -155,6 +167,11 @@ def prepare_date(_d):
     return datetime.datetime(int(_date_left[2])+2000, int(_date_left[1]), int(_date_left[0])), _date_right
 
 
+def notify(result):
+    if producer:
+        producer.send(config['topic.name'], value = {"inserted": result.inserted_ids})
+
+
 while True:
     try:
         myclient = pymongo.MongoClient(config["db.url"])
@@ -215,15 +232,16 @@ while True:
                     else:
                         _hometask = process_home_task(d, _hometask)
 
-
             for i in db_records:
                 print(i)
             if db_records:
-                dienasgramata.insert_many(db_records)
-
+                result = dienasgramata.insert_many(db_records)
+                notify(result)
+                db_records = []
 
     except RuntimeError as e:
         logger.error(e)
+        db_records = []
 
     if 'restart' in config and config['restart'] > 0:
         logger.info("Waiting %s seconds.", config['restart'])
