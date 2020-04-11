@@ -8,7 +8,8 @@
   "logging.file": "dienasgramata-to-db.log",
   "logging.level": 10,
   "db.url": "mongodb://192.168.1.61:27017/",
-  "topic.name": "notifications",
+  "kafka.topic": "notifications",
   "kafka.host": "192.168.1.63:9092",
+  "kafka.message.tag": "inserted",
   "restart": 60
 }

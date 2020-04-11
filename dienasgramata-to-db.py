@@ -169,7 +169,7 @@ def prepare_date(_d):
 
 def notify(result):
     if producer:
-        producer.send(config['topic.name'], value = {"inserted": result.inserted_ids})
+        producer.send(config['kafka.topic'], value = {config["kafka.message.tag"]: result.inserted_ids})
 
 
 while True:
