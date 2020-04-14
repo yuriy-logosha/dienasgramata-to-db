@@ -98,6 +98,12 @@ def is_after_hometask(d, after_hometask):
     return False
 
 
+def is_first_column(d):
+    if d[0] == 'td' and d[1] == [('class', 'first-column')]:
+        return True
+    return False
+
+
 def is_score(d):
     if d[0] == 'td' and d[1] == [('class', 'score')]:
         return True
@@ -121,22 +127,18 @@ def extract(s):
 
 
 def process_home_task(s, buffer):
-    if s[0] == 'a' and not s[1][0][1].startswith('http'):
-        try:
+    try:
+        if s[0] == 'a' and not s[1][0][1].startswith('http'):
             if buffer:
                 buffer += ';'
             buffer += 'http://darit.space/dienasgramata/' + urllib.parse.quote(s[1][0][1].replace('\r', '').replace('\n', '').strip())
-        except RuntimeError as e:
-            logger.error(e)
-    else:
-        try:
-            txt = s[2].replace('\r', '').replace('\n', '').strip()
-            if txt:
-                if buffer:
-                    buffer += ';'
-                buffer += txt
-        except RuntimeError as e:
-            logger.error(e)
+        else:
+            txt = s[2].replace('\r', '').replace('\n', '').strip() if len(s) > 2 else ""
+            if txt and buffer:
+                buffer += ';'
+            buffer += txt
+    except RuntimeError as e:
+        logger.error(e)
     return buffer
 
 # encode('utf-8').decode().
@@ -186,12 +188,12 @@ def add(db_records, param):
     else:
         if param['tema']:
             if r['tema']:
-                r['tema'] = r['tema'] +'; '+ param['tema']
+                r['tema'] = r['tema'] + '; ' + param['tema']
             else:
                 r['tema'] = param['tema']
         if param['exercise']:
             if r['exercise']:
-                r['exercise'] = r['exercise'] +'; '+ param['exercise']
+                r['exercise'] = r['exercise'] + '; ' + param['exercise']
             else:
                 r['exercise'] = param['exercise']
 
@@ -229,6 +231,13 @@ while True:
                     _hometask_goingon = False
                     continue
 
+                if is_first_column(d):
+                    _hometask = ""
+                    _tema = ""
+                    _hometask_goingon = False
+                    _tema_goingon = False
+                    continue
+
                 if is_title(d):
                     _subj = extract(d[2])
                     _hometask = ""
@@ -253,6 +262,7 @@ while True:
                             add(db_records, build_db_record(_date, _day, _subj, _tema, _hometask))
 
                         _hometask = ""
+                        _tema = ""
                     else:
                         _hometask = process_home_task(d, _hometask)
 
