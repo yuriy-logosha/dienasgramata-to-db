@@ -154,7 +154,7 @@ _right_section = False
 db_records = []
 
 
-def get_record(_date, _day, _subj):
+def get_db_record(_date, _day, _subj):
     _records = list(dienasgramata.find({"kind": "exercise", "date": _date , "day": f"{_day}", "subject": f"{_subj}"}))
     if len(_records) > 0:
         return _records[0]
@@ -170,6 +170,30 @@ def prepare_date(_d):
 def notify(result):
     if producer:
         producer.send(config['kafka.topic'], value = {config["kafka.message.tag"]: result.inserted_ids})
+
+
+def get_record(db_records, param):
+    for r in db_records:
+        if r['date'] == param['date'] and r['day'] == param['day'] and r['subject'] == param['subject']:
+            return r
+    return None
+
+
+def add(db_records, param):
+    r = get_record(db_records, param)
+    if not r:
+        db_records.append(param)
+    else:
+        if param['tema']:
+            if r['tema']:
+                r['tema'] = r['tema'] +'; '+ param['tema']
+            else:
+                r['tema'] = param['tema']
+        if param['exercise']:
+            if r['exercise']:
+                r['exercise'] = r['exercise'] +'; '+ param['exercise']
+            else:
+                r['exercise'] = param['exercise']
 
 
 while True:
@@ -224,9 +248,9 @@ while True:
                 if _subj and (_hometask_goingon or _tema_goingon):
                     if is_score(d) and (_hometask or _tema):
                         _hometask_goingon = False
-                        r = get_record(_date, _day, _subj)
+                        r = get_db_record(_date, _day, _subj)
                         if not r:
-                            db_records.append(build_db_record(_date, _day, _subj, _tema, _hometask))
+                            add(db_records, build_db_record(_date, _day, _subj, _tema, _hometask))
 
                         _hometask = ""
                     else:
