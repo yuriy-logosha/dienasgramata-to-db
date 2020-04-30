@@ -178,9 +178,9 @@ def prepare_date(_d):
     return datetime.datetime(int(_date_left[2])+2000, int(_date_left[1]), int(_date_left[0])), _date_right
 
 
-def notify(result):
+def notify(inserted_ids):
     try:
-        get_producer().send(config['kafka.topic'], value = {config["kafka.message.tag"]: result.inserted_ids})
+        get_producer().send(config['kafka.topic'], value = {config["kafka.message.tag"]: inserted_ids})
     except Exception as e:
         logger.error(e)
 
@@ -281,7 +281,7 @@ while True:
                 print(i)
             if db_records:
                 result = dienasgramata.insert_many(db_records)
-                notify(result)
+                notify(result.inserted_ids)
                 db_records = []
 
     except RuntimeError as e:
